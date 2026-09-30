@@ -3,13 +3,19 @@ jest.mock("../models/messages.model");
 const {
   fetchMessages,
   insertMessage,
-  fetchMessageById
+  fetchMessageById,
+  removeMessage
 } = require("../models/messages.model");
 const {
   getMessages,
   postMessage,
-  getMessageById
+  getMessageById,
+  deleteMessage
 } = require("./messages.controller");
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe("getMessageById", () => {
   test("getMessageById responds with status 200 and the returned message object", async () => {
@@ -107,5 +113,57 @@ test("postMessage responds with status 201 and the returned message object", asy
   expect(res.status).toHaveBeenCalledWith(201);
   expect(res.json).toHaveBeenCalledWith({
     message: response
+  });
+});
+
+describe("deleteMessage", () => {
+  test("responds with 204 on successful delete", async () => {
+    const req = {
+      params: {
+        messageId: 1
+      }
+    };
+    const res = {
+      status: jest.fn(),
+      json: jest.fn(),
+      sendStatus: jest.fn()
+    };
+    const message = {
+      id: 1,
+      message: "hello pookie"
+    };
+
+    removeMessage.mockResolvedValue(message);
+
+    await deleteMessage(req, res);
+
+    expect(removeMessage).toHaveBeenCalledWith(1)
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).not.toHaveBeenCalled();
+    expect(res.sendStatus).toHaveBeenCalledWith(204);
+  });
+
+  test("responds with 404 error for nonexistent message", async () => {
+    const req = {
+      params: {
+        messageId: 1
+      }
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      sendStatus: jest.fn()
+    };
+
+    removeMessage.mockResolvedValue(undefined);
+
+    await deleteMessage(req, res);
+
+    expect(removeMessage).toHaveBeenCalledWith(1);
+    expect(res.sendStatus).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Message not found"
+    });
   });
 });

@@ -2,7 +2,8 @@ const express = require("express");
 const {
   getMessages,
   postMessage,
-  getMessageById
+  getMessageById,
+  deleteMessage
 } = require("../controllers/messages.controller");
 const {
   validateMessage,
@@ -26,6 +27,12 @@ messagesRouter.get(
   "/:messageId",
   validateMessageId,
   getMessageById
+);
+
+messagesRouter.delete(
+  "/:messageId",
+  validateMessageId,
+  deleteMessage
 );
 
 module.exports = {

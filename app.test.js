@@ -114,6 +114,49 @@ describe("POST /messages", () => {
   });
 });
 
+describe("DELETE /messages", () => {
+  test("an existing message gets deleted", async () => {
+    await db.query(
+      `INSERT INTO messages
+      (message)
+      VALUES ($1);`,
+      ["hello pookie"]
+    );
+
+    const response = await request(app)
+      .delete("/messages/1");
+
+    const dbResult = await db.query(
+      `SELECT * FROM messages
+      WHERE id = $1;`,
+      [1]
+    );
+
+    expect(dbResult.rows).toEqual([]);
+    expect(response.status).toBe(204);
+  });
+
+  test("request with invalid message ID gets 400 'Invalid message ID'", async () => {
+    const response = await request(app)
+      .delete("/messages/banana");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      message: "Invalid message ID"
+    });
+  });
+
+  test("attempting to delete a nonexistent message gets 404 'Message not found'", async () => {
+    const response = await request(app)
+      .delete("/messages/999999");
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      message: "Message not found"
+    });
+  });
+});
+
 afterAll(async () => {
   await db.end();
 });

@@ -1,7 +1,8 @@
 const {
   fetchMessages,
   insertMessage,
-  fetchMessageById
+  fetchMessageById,
+  removeMessage
 } = require("../models/messages.model");
 
 async function getMessages(req, res) {
@@ -36,8 +37,23 @@ async function getMessageById(req, res) {
   });
 }
 
+async function deleteMessage(req, res) {
+  const message = await removeMessage(
+    req.params.messageId
+  );
+
+  if (!message) {
+    return res.status(404).json({
+      message: "Message not found"
+    });
+  }
+
+  return res.sendStatus(204);
+}
+
 module.exports = {
   getMessages,
   postMessage,
-  getMessageById
+  getMessageById,
+  deleteMessage
 };
