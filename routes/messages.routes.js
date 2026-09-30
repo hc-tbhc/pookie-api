@@ -3,7 +3,8 @@ const {
   getMessages,
   postMessage,
   getMessageById,
-  deleteMessage
+  deleteMessage,
+  updateMessage
 } = require("../controllers/messages.controller");
 const {
   validateMessage,
@@ -33,6 +34,13 @@ messagesRouter.delete(
   "/:messageId",
   validateMessageId,
   deleteMessage
+);
+
+messagesRouter.patch(
+  "/:messageId",
+  validateMessageId,
+  validateMessage,
+  updateMessage
 );
 
 module.exports = {

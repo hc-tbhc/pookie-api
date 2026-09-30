@@ -157,6 +157,86 @@ describe("DELETE /messages", () => {
   });
 });
 
+describe("PATCH /messages", () => {
+  test("an existing message gets updated and returned", async () => {
+    await db.query(
+      `INSERT INTO messages
+      (message)
+      VALUES ($1);`,
+      ["hello pookie"]
+    );
+
+    const expectedResponse = {
+      id: 1,
+      message: "hallo pookles"
+    };
+
+    const response = await request(app)
+      .patch("/messages/1")
+      .send({
+        message: "hallo pookles"
+      });
+
+    const dbResult = await db.query(
+      `SELECT * FROM messages
+      WHERE id = $1;`,
+      [1]
+    );
+
+    expect(response.status).toBe(200);
+    expect(dbResult.rows[0]).toEqual(expectedResponse);
+    expect(response.body).toEqual({
+      message: expectedResponse
+    });
+  });
+
+  test("request with malformed message ID receives 400 'Invalid message ID'", async () => {
+    const response = await request(app)
+      .patch("/messages/banana")
+      .send({
+        message: "hallo pookles"
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      message: "Invalid message ID"
+    });
+  });
+
+  test("attempt to update nonexistent message gets 404 'Message not found'", async () => {
+    const response = await request(app)
+      .patch("/messages/99999")
+      .send({
+        message: "hallo pookles"
+      });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      message: "Message not found"
+    });
+  });
+
+  test("attempt to update message with malformed body gets 400 error", async () => {
+    await db.query(
+      `INSERT INTO messages
+      (message)
+      VALUES ($1);`,
+      ["hello pookie"]
+    );
+
+    const response = await request(app)
+      .patch("/messages/1")
+      .send({
+        message: "     "
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      message: "Message must be a non-empty string"
+    });
+  });
+});
+
 afterAll(async () => {
   await db.end();
 });

@@ -41,9 +41,22 @@ async function removeMessage(messageId) {
   return result.rows[0];
 }
 
+async function patchMessage(messageId, message) {
+  const result = await db.query(
+    `UPDATE messages
+    SET message = $2
+    WHERE id = $1
+    RETURNING *;`,
+    [messageId, message]
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   fetchMessages,
   insertMessage,
   fetchMessageById,
-  removeMessage
+  removeMessage,
+  patchMessage
 };

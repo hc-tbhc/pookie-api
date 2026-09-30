@@ -4,7 +4,8 @@ const {
   insertMessage,
   fetchMessages,
   fetchMessageById,
-  removeMessage
+  removeMessage,
+  patchMessage
 } = require("./messages.model");
 
 beforeEach(async () => {
@@ -66,7 +67,7 @@ test("fetchMessageById retrieves the row whose id matches the supplied id", asyn
 });
 
 describe("removeMessage", () => {
-  test("an exiting row is deleted and returned", async () => {
+  test("an existing row is deleted and returned", async () => {
     await db.query(
       `INSERT INTO messages
       (message)
@@ -94,6 +95,39 @@ describe("removeMessage", () => {
 
     expect(result).toBe(undefined);
   })
+});
+
+describe("patchMessage", () => {
+  test("an existing message gets updated and returned", async () => {
+    await db.query(
+      `INSERT INTO messages
+      (message)
+      VALUES ($1);`,
+      ["hello pookie"]
+    );
+
+    const expectedResponse = {
+      id: 1,
+      message: "hallo pookles"
+    };
+
+    const result = await patchMessage(1, "hallo pookles");
+
+    const dbResult = await db.query(
+      `SELECT * FROM messages
+      WHERE id = $1`,
+      [1]
+    );
+
+    expect(result).toEqual(expectedResponse);
+    expect(dbResult.rows[0]).toEqual(expectedResponse);
+  });
+
+  test("attempting to update a nonexistent message returns undefined", async () => {
+    const result = await patchMessage(999999, "hallo pookles");
+
+    expect(result).toBe(undefined);
+  });
 });
 
 afterAll(async () => {
