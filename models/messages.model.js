@@ -8,13 +8,13 @@ async function fetchMessages() {
   return result.rows;
 }
 
-async function insertMessage(message) {
+async function insertMessage(message, userId) {
   const result = await db.query(
     `INSERT INTO messages
-    (message)
-    VALUES ($1)
+    (message, user_id)
+    VALUES ($1, $2)
     RETURNING *;`,
-    [message]
+    [message, userId]
   );
 
   return result.rows[0];

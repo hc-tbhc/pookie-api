@@ -2,25 +2,36 @@ const db = require("./db/connection");
 const { setupTestDb } = require("./test-setup");
 const request = require("supertest");
 const app = require("./app");
+let testUserId;
 
 beforeEach(async () => {
   await setupTestDb();
+
+  const testUser = await db.query(
+    `INSERT INTO users
+    (username)
+    VALUES ($1)
+    RETURNING *;`,
+    ["pookie"]
+  );
+
+  testUserId = testUser.rows[0].id;
 });
 
 describe("GET /messages", () => {
   test("responds with all rows from the messages table", async () => {
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello pookie"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello pookie", testUserId]
     );
   
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello again"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello again", testUserId]
     );
   
     const response = await request(app)
@@ -29,8 +40,8 @@ describe("GET /messages", () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       messages: [
-        { id: 1, message: "hello pookie" },
-        { id: 2, message: "hello again" }
+        { id: 1, message: "hello pookie", user_id: testUserId },
+        { id: 2, message: "hello again", user_id: testUserId }
       ]
     });
   });
@@ -38,16 +49,16 @@ describe("GET /messages", () => {
   test("responds with message object whose id matches the supplied id", async () => {
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello pookie"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello pookie", testUserId]
     );
   
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello again"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello again", testUserId]
     );
   
     const response = await request(app)
@@ -55,7 +66,11 @@ describe("GET /messages", () => {
   
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      message: { id: 2, message: "hello again" }
+      message: {
+        id: 2,
+        message: "hello again",
+        user_id: testUserId
+      }
     });
   });
 
@@ -85,13 +100,15 @@ describe("POST /messages", () => {
     const response = await request(app)
       .post("/messages")
       .send({
-        message: "hello pookie"
+        message: "hello pookie",
+        userId: testUserId
       });
   
     expect(response.status).toBe(201);
     expect(response.body.message).toEqual({
       id: 1,
-      message: "hello pookie"
+      message: "hello pookie",
+      user_id: testUserId
     });
   });
   
@@ -112,15 +129,29 @@ describe("POST /messages", () => {
       message: "Message must be a non-empty string"
     });
   });
+
+  test("returns 404 when the supplied user does not exist", async () => {
+    const response = await request(app)
+      .post("/messages")
+      .send({
+        message: "hello nobody",
+        userId: 999999
+      });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      message: "User not found"
+    });
+  });
 });
 
 describe("DELETE /messages", () => {
   test("an existing message gets deleted", async () => {
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello pookie"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello pookie", testUserId]
     );
 
     const response = await request(app)
@@ -161,14 +192,15 @@ describe("PATCH /messages", () => {
   test("an existing message gets updated and returned", async () => {
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello pookie"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello pookie", testUserId]
     );
 
     const expectedResponse = {
       id: 1,
-      message: "hallo pookles"
+      message: "hallo pookles",
+      user_id: testUserId
     };
 
     const response = await request(app)
@@ -219,9 +251,9 @@ describe("PATCH /messages", () => {
   test("attempt to update message with malformed body gets 400 error", async () => {
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello pookie"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello pookie", testUserId]
     );
 
     const response = await request(app)

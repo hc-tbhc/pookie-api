@@ -15,7 +15,10 @@ async function getMessages(req, res) {
 }
 
 async function postMessage(req, res) {
-  const message = await insertMessage(req.body.message);
+  const message = await insertMessage(
+    req.body.message,
+    req.body.userId
+  );
 
   return res.status(201).json({
     message

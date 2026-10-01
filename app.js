@@ -2,6 +2,7 @@ require("./config/env");
 
 const express = require("express");
 const { messagesRouter } = require("./routes/messages.routes");
+const { errorHandler } = require("./middleware/errors.middleware");
 
 const app = express();
 
@@ -14,6 +15,8 @@ app.get("/health", (req, res, next) => {
     status: "ok"
   });
 });
+
+app.use(errorHandler);
 
 module.exports = app;
 

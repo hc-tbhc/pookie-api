@@ -8,8 +8,10 @@ const {
 } = require("../controllers/messages.controller");
 const {
   validateMessage,
-  validateMessageId
+  validateMessageId,
+  validateUserId
 } = require("../middleware/messages.middleware");
+const asyncHandler = require("../middleware/asyncHandler.middleware");
 
 const messagesRouter = express.Router();
 
@@ -21,7 +23,8 @@ messagesRouter.get(
 messagesRouter.post(
   "/",
   validateMessage,
-  postMessage
+  validateUserId,
+  asyncHandler(postMessage)
 );
 
 messagesRouter.get(

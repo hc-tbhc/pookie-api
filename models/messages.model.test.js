@@ -7,62 +7,89 @@ const {
   removeMessage,
   patchMessage
 } = require("./messages.model");
+let testUserId;
 
 beforeEach(async () => {
   await setupTestDb();
+
+  const testUser = await db.query(
+    `INSERT INTO users
+    (username)
+    VALUES ($1)
+    RETURNING *;`,
+    ["pookie"]
+  );
+
+  testUserId = testUser.rows[0].id;
 });
 
-test("insertMessage returns a newly-created row when invoked with a message", async () => {
-  const response = await insertMessage("hello pookie");
+describe("insertMessage", () => {
+  test("creates and returns a new message under the supplied user ID", async () => {
+    const response = await insertMessage(
+      "hello pookie",
+      testUserId
+    );
 
-  expect(response).toEqual({
-    id: 1, message: "hello pookie"
+    expect(response).toEqual({
+      id: 1,
+      message: "hello pookie",
+      user_id: testUserId
+    });
+  });
+
+  test("rejects with a foreign key violation when supplied user ID doesn't exist", async () => {
+    await expect(
+      insertMessage("hello nobody", 999999)
+    ).rejects.toMatchObject({
+      code: "23503"
+    });
   });
 });
 
 test("fetchMessages retrieves all rows in messages", async () => {
   await db.query(
     `INSERT INTO messages
-    (message)
-    VALUES ($1);`,
-    ["hello pookie"]
+    (message, user_id)
+    VALUES ($1, $2);`,
+    ["hello pookie", testUserId]
   );
 
   await db.query(
     `INSERT INTO messages
-    (message)
-    VALUES ($1);`,
-    ["hello again"]
+    (message, user_id)
+    VALUES ($1, $2);`,
+    ["hello again", testUserId]
   );
 
   const result = await fetchMessages();
 
   expect(result).toEqual([
-    { id: 1, message: "hello pookie" },
-    { id: 2, message: "hello again" }
+    { id: 1, message: "hello pookie", user_id: testUserId },
+    { id: 2, message: "hello again", user_id: testUserId }
   ]);
 });
 
 test("fetchMessageById retrieves the row whose id matches the supplied id", async () => {
   await db.query(
     `INSERT INTO messages
-    (message)
-    VALUES ($1);`,
-    ["hello pookie"]
+    (message, user_id)
+    VALUES ($1, $2);`,
+    ["hello pookie", testUserId]
   );
 
   await db.query(
     `INSERT INTO messages
-    (message)
-    VALUES ($1);`,
-    ["hello again"]
+    (message, user_id)
+    VALUES ($1, $2);`,
+    ["hello again", testUserId]
   );
 
   const result = await fetchMessageById(2);
 
   expect(result).toEqual({
     id: 2,
-    message: "hello again"
+    message: "hello again",
+    user_id: testUserId
   });
 });
 
@@ -70,9 +97,9 @@ describe("removeMessage", () => {
   test("an existing row is deleted and returned", async () => {
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello pookie"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello pookie", testUserId]
     );
 
     const result = await removeMessage(1);
@@ -86,7 +113,8 @@ describe("removeMessage", () => {
     expect(dbResult.rows).toEqual([]);
     expect(result).toEqual({
       id: 1,
-      message: "hello pookie"
+      message: "hello pookie",
+      user_id: testUserId
     });
   })
 
@@ -101,14 +129,15 @@ describe("patchMessage", () => {
   test("an existing message gets updated and returned", async () => {
     await db.query(
       `INSERT INTO messages
-      (message)
-      VALUES ($1);`,
-      ["hello pookie"]
+      (message, user_id)
+      VALUES ($1, $2);`,
+      ["hello pookie", testUserId]
     );
 
     const expectedResponse = {
       id: 1,
-      message: "hallo pookles"
+      message: "hallo pookles",
+      user_id: testUserId
     };
 
     const result = await patchMessage(1, "hallo pookles");

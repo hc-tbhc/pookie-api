@@ -91,30 +91,37 @@ test("getMessages responds with status 200 and messages array", async () => {
   });
 });
 
-test("postMessage responds with status 201 and the returned message object", async () => {
-  const req = {
-    body: {
-      message: "hello again"
-    }
-  };
-  const res = {
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn()
-  };
+describe("postMessage", () => {
+  test("postMessage responds with status 201 and the returned message object", async () => {
+    const req = {
+      body: {
+        message: "hello again",
+        userId: 1
+      }
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
 
-  const response = {
-    id: 2,
-    message: "hello again"
-  }
+    const response = {
+      id: 2,
+      message: "hello again",
+      user_id: 1
+    };
 
-  insertMessage.mockResolvedValue(response);
+    insertMessage.mockResolvedValue(response);
 
-  await postMessage(req, res);
+    await postMessage(req, res);
 
-  expect(insertMessage).toHaveBeenCalledWith("hello again");
-  expect(res.status).toHaveBeenCalledWith(201);
-  expect(res.json).toHaveBeenCalledWith({
-    message: response
+    expect(insertMessage).toHaveBeenCalledWith(
+      "hello again",
+      1
+    );
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith({
+      message: response
+    });
   });
 });
 
